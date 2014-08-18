@@ -15,6 +15,7 @@ use Aws\S3\S3Client;
 $s3client = S3Client::factory();
 
 $msg='';
+$currentuser = 'skrause';
 $bucket = 'scanmyfridge-upload';
 
 if($_SERVER['REQUEST_METHOD'] == "POST")
@@ -32,7 +33,16 @@ if($_SERVER['REQUEST_METHOD'] == "POST")
 			//Rename image name. 
 			$actual_image_name = rand() . time().".".$ext;
 
-			if($s3client->putObjectFile($tmp, $bucket , $actual_image_name, S3::ACL_PRIVATE) )
+			$result = $s3client->putObject(array(
+    				'Bucket'     => $bucket,
+    				'Key'        => $actual_image_name,
+    				'SourceFile' => $tmp,
+    				'Metadata'   => array(
+        				'User' => $currentuser,
+        				'Source' => 'webupload'
+					)
+			));
+			if($result)
 			{
 				$msg = "S3 Upload Successful."; 
 				$s3file='http://'.$bucket.'.s3.amazonaws.com/'.$actual_image_name;
