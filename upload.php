@@ -8,6 +8,7 @@
 <h2>Imagine a beautiful upload page here</h2>
 <?php
 require 'tools/image_check.php';
+
 require 'vendor/autoload.php';
 
 use Aws\S3\S3Client;
@@ -31,9 +32,11 @@ if($_SERVER['REQUEST_METHOD'] == "POST")
 		if(in_array($ext,$valid_formats))
 		{
 			//Rename image name. 
-			$actual_image_name = rand() . time().".".$ext;
-
-			$result = $s3client->putObject(array(
+			$actualphp_image_name = rand() . time().".".$ext;
+			$exmsg = "";
+			try
+			{
+				$result = $s3client->putObject(array(
     				'Bucket'     => $bucket,
     				'Key'        => $actual_image_name,
     				'SourceFile' => $tmp,
@@ -41,7 +44,13 @@ if($_SERVER['REQUEST_METHOD'] == "POST")
         				'User' => $currentuser,
         				'Source' => 'webupload'
 					)
-			));
+				));	
+			}
+			catch (Exception $e)
+			{
+				$exmsg = $e;
+			}
+			
 			if($result)
 			{
 				$msg = "S3 Upload Successful."; 
@@ -50,7 +59,7 @@ if($_SERVER['REQUEST_METHOD'] == "POST")
 				echo 'S3 File URL:'.$s3file;
 			}
 			else
-				$msg = "S3 Upload Fail.";
+				$msg = "S3 Upload Fail:" . $exmsg;
 		}
 		else
 			$msg = "Invalid file, please upload image file.";
