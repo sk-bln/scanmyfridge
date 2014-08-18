@@ -11,10 +11,21 @@ require 'tools/image_check.php';
 
 require 'vendor/autoload.php';
 
+$queueURL = 'https://sqs.eu-west-1.amazonaws.com/812162077765/TestQueue';
+
 use Aws\S3\S3Client;
+use Aws\Sqs\SqsClient;
 
-$s3client = S3Client::factory();
-
+try
+{
+	$s3client = S3Client::factory();
+	$sqsclient = SqsClient::factory(array('region' => 'eu-west-1'));
+}
+catch (Exception $e)
+{
+	echo 'Exception: ' . $e;
+	exit();
+}
 $msg='';
 $currentuser = 'skrause';
 $bucket = 'scanmyfridge-upload';
@@ -32,8 +43,9 @@ if($_SERVER['REQUEST_METHOD'] == "POST")
 		if(in_array($ext,$valid_formats))
 		{
 			//Rename image name. 
-			$actualphp_image_name = rand() . time().".".$ext;
+			$actual_image_name = rand() . time().".".$ext;
 			$exmsg = "";
+			$result = "";
 			try
 			{
 				$result = $s3client->putObject(array(
@@ -53,13 +65,33 @@ if($_SERVER['REQUEST_METHOD'] == "POST")
 			
 			if($result)
 			{
-				$msg = "S3 Upload Successful."; 
+				$msg = "<b>S3 Upload Successful.</b><br/>"; 
 				$s3file='http://'.$bucket.'.s3.amazonaws.com/'.$actual_image_name;
 				echo "<img src='$s3file'/>";
-				echo 'S3 File URL:'.$s3file;
+				echo '<b>S3 File URL:</b>'.$s3file . '<br/>';
+				$exmsg = "";
+				try
+				{
+					$message = array(
+						'User' => $currentuser,
+						'S3File' => $s3file);
+
+					$result = $sqsclient->sendMessage(array(
+						'QueueUrl' => $queueURL,
+						'MessageBody' => json_encode($message)
+					));					
+
+				}
+				catch (Exception $e)
+				{
+					$exmsg = $e;
+					echo '<b>SQS Error:</b> ' . $exmsg . '<br/>';
+
+				}
+
 			}
 			else
-				$msg = "S3 Upload Fail:" . $exmsg;
+				$msg = "<b>S3 Upload Fail:</b>" . $exmsg . '<br/>';
 		}
 		else
 			$msg = "Invalid file, please upload image file.";
