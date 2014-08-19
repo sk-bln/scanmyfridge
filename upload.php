@@ -11,24 +11,26 @@ require 'tools/image_check.php';
 
 require 'vendor/autoload.php';
 
-$queueURL = 'https://sqs.eu-west-1.amazonaws.com/812162077765/TestQueue';
+$queueURL = 'https://sqs.eu-west-1.amazonaws.com/812162077765/ScanmyfridgeQueue';
 
 use Aws\S3\S3Client;
 use Aws\Sqs\SqsClient;
 
+$msg='';
+$currentuser = 'skrause';
+$bucket = 'scanmyfridge-upload';
+$awsregion = 'eu-west-1';
 try
 {
-	$s3client = S3Client::factory();
-	$sqsclient = SqsClient::factory(array('region' => 'eu-west-1'));
+	$s3client = S3Client::factory(array('region' => $awsregion));
+	$sqsclient = SqsClient::factory(array('region' => $awsregion));
 }
 catch (Exception $e)
 {
 	echo 'Exception: ' . $e;
 	exit();
 }
-$msg='';
-$currentuser = 'skrause';
-$bucket = 'scanmyfridge-upload';
+
 
 if($_SERVER['REQUEST_METHOD'] == "POST")
 {
@@ -67,7 +69,6 @@ if($_SERVER['REQUEST_METHOD'] == "POST")
 			{
 				$msg = "<b>S3 Upload Successful.</b><br/>"; 
 				$s3file='http://'.$bucket.'.s3.amazonaws.com/'.$actual_image_name;
-				echo "<img src='$s3file'/>";
 				echo '<b>S3 File URL:</b>'.$s3file . '<br/>';
 				$exmsg = "";
 				try
